@@ -1,0 +1,7 @@
+# Goland project files.
+.idea
+
+
+
+build
+*.exe
