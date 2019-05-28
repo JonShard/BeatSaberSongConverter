@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // ################ Old Format: ###########################################
@@ -88,9 +89,21 @@ type InfoOut struct {
 
 func main() {
 
-	infoInFile, err := os.Open("info.json")
+	arg := os.Args [1]
+	var infoFileName string
+	if len(arg) != 0 {
+		if strings.Contains(arg, "/info.json") {
+			 infoFileName = arg
+		 } else {
+		 	infoFileName = arg + "/info.json"
+		 }
+	} else {
+		infoFileName = "info.json"
+	}
+
+	infoInFile, err := os.Open(infoFileName)
 	if err != nil {
-		fmt.Print("opening info file", err.Error())
+		fmt.Printf("opening info file: %s\n %s\n", infoFileName, err.Error())
 		return
 	}
 	var infoIn InfoIn
@@ -98,11 +111,11 @@ func main() {
 
 	jsonParser := json.NewDecoder(infoInFile)
 	if err = jsonParser.Decode(&infoIn); err != nil {
-		fmt.Print("parsing info file", err.Error())
+		fmt.Print("parsing info file\n", err.Error())
 	}
 
 	if len(infoIn.DifficultyLevels) == 0 {
-		fmt.Printf("error parsing info file. There are no difficulty structures in the info.json file.\nThey are used to define presets of the song, each one using a separate Easy.json to ExpertPlus.json")
+		fmt.Printf("error parsing info file. There are no difficulty structures in the info.json file.\nThey are used to define presets of the song, each one using a separate Easy.json to ExpertPlus.json\n")
 		return
 	}
 
@@ -110,7 +123,7 @@ func main() {
 	infoOut.SongName = infoIn.SongName
 	infoOut.SongSubName = infoIn.SongSubName
 	infoOut.SongAuthorName = infoIn.SongAuthorName
-	infoOut.LevelAuthorName = "Unknown"
+	infoOut.LevelAuthorName = "Unknown"						// Although many level creators write their name in the SongSubName field. There is no guarantee for this.
 	infoOut.BeatsPerMinute = infoIn.BeatsPerMinute
 	infoOut.SongTimeOffset = 0  // Not sure what this offset is.
 	infoOut.Shuffle = 0.0
@@ -129,23 +142,23 @@ func main() {
 		beatmap.Difficulty = infoIn.DifficultyLevels[i].Difficulty
 		beatmap.DifficultyRank = infoIn.DifficultyLevels[i].DifficultyRank
 		beatmap.BeatMapFile =infoIn.DifficultyLevels[i].JsonPath
-		beatmap.NoteJumpMovement = 0.0						// Not sure what this is.
+		beatmap.NoteJumpMovement = 10.0						// Not sure what this is. But 10 seems to be a default value in the beat saber level editor.
 		beatmap.NoteJumpBeatOffset = 0
 		difficultySet.DifficultyBeatMaps = append(difficultySet.DifficultyBeatMaps, beatmap)
 	}
 	infoOut.DifficultyBeatmapSets = append(infoOut.DifficultyBeatmapSets, difficultySet)
 
-	infoOutFile, err := os.Create("Info.dat")
+	infoOutFile, err := os.Create(strings.Replace(infoFileName,"info.json", "Info.dat", 1))
 	if err != nil {
-		fmt.Print("Unable to create Info.dat file.", err.Error())
+		fmt.Print("Unable to create Info.dat file.\n", err.Error())
 	}
 	jsonEncoder := json.NewEncoder(infoOutFile)
 	err = jsonEncoder.Encode(infoOut)
 	if err != nil {
-		fmt.Print("Unable to encode json structure", err.Error())
+		fmt.Print("Unable to encode json structure\n", err.Error())
 	}
 
-	fmt.Print("Successfully converted song's 'info.json' into an 'Info.bat'")
+	fmt.Printf("Successfully converted %s's 'info.json' into an 'Info.dat'\n", infoOut.SongName)
 
 	if infoInFile != nil {		// Close read Info file.
 		err = infoInFile.Close()
